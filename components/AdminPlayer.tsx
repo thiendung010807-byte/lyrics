@@ -46,8 +46,13 @@ export function AdminPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
-    audio.src = selected.audioSrc;
-    audio.load();
+    if (selected.audioSrc) {
+      audio.src = selected.audioSrc;
+      audio.load();
+    } else {
+      audio.removeAttribute("src");
+      audio.load();
+    }
     setDurationMs(0);
   }, [selected.audioSrc]);
 
@@ -99,6 +104,7 @@ export function AdminPlayer() {
   }
 
   async function handlePlay() {
+    if (selected.kind === "instrument") return;
     const audio = audioRef.current;
     const requested = Math.min(shownPosition, maxDuration);
     const knownDuration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration * 1000 : durationMs || null;
@@ -137,6 +143,7 @@ export function AdminPlayer() {
   }
 
   async function commitSeek(position: number) {
+    if (selected.kind === "instrument") return;
     const audio = audioRef.current;
     if (audio) audio.currentTime = position / 1000;
     const action: ControlAction = state.status === "playing" ? "seek" : "pause";
@@ -154,7 +161,7 @@ export function AdminPlayer() {
   const syncLabel = useMemo(() => Math.abs(clockOffset) < 100 ? "Đồng hồ đã đồng bộ" : `Hiệu chỉnh ${Math.round(clockOffset)} ms`, [clockOffset]);
   const filteredSongs = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase("vi");
-    return keyword ? songs.filter((song) => `${song.title} ${song.composer}`.toLocaleLowerCase("vi").includes(keyword)) : songs;
+    return keyword ? songs.filter((song) => `${song.title} ${song.composer} ${song.kind === "instrument" ? "đàn" : "nhạc"}`.toLocaleLowerCase("vi").includes(keyword)) : songs;
   }, [query]);
 
   if (!keyReady) {
@@ -179,7 +186,7 @@ export function AdminPlayer() {
         <div className="simple-song-list">
           {filteredSongs.map((song) => (
             <button key={song.id} className={`simple-song ${song.id === selected.id ? "active" : ""}`} onClick={() => void selectSong(song.id)} disabled={busy}>
-              <span>{song.id === selected.id ? "▶" : "▷"}</span><span>{song.title}</span>
+              <span>{song.id === selected.id ? "▶" : "▷"}</span><span>{song.title} <small>· {song.kind === "instrument" ? "ĐÀN" : "NHẠC"}</small></span>
             </button>
           ))}
           {!filteredSongs.length && <p className="no-result">Không tìm thấy bài hát.</p>}
@@ -190,18 +197,18 @@ export function AdminPlayer() {
           <div className="now-playing-label">NOW PLAYING</div>
           <div className="simple-now-title">{selected.title}</div>
           <div className="simple-now-artist">Sáng tác: {selected.composer}</div>
-          <div className="seek-wrap">
-            <input className="seek" aria-label="Vị trí bài hát" type="range" min={0} max={maxDuration} step={100} value={Math.min(shownPosition, maxDuration)} onChange={(event) => setDraftPosition(Number(event.target.value))} onPointerUp={(event) => void commitSeek(Number(event.currentTarget.value))} />
-            <div className="seek-labels"><span>{formatTime(shownPosition)}</span><span>{formatTime(maxDuration)}</span></div>
-          </div>
+          {selected.kind === "music" ? <div className="seek-wrap">
+              <input className="seek" aria-label="Vị trí bài hát" type="range" min={0} max={maxDuration} step={100} value={Math.min(shownPosition, maxDuration)} onChange={(event) => setDraftPosition(Number(event.target.value))} onPointerUp={(event) => void commitSeek(Number(event.currentTarget.value))} />
+              <div className="seek-labels"><span>{formatTime(shownPosition)}</span><span>{formatTime(maxDuration)}</span></div>
+            </div> : <p className="instrument-notice">BÀI ĐÀN · HIỆN TOÀN BỘ LỜI · KHÔNG PHÁT MP3</p>}
           <div className="simple-controls">
               <button className="icon-button" aria-label="Bài trước" onClick={() => void selectSong(neighbour(-1))} disabled={busy}><ChevronLeft /></button>
-              {state.status === "playing" ?
+              {selected.kind === "music" && (state.status === "playing" ?
                 <button className="play-button" aria-label="Tạm dừng" onClick={() => void handlePause()} disabled={busy}><Pause size={19} fill="currentColor" /></button> :
-                <button className="play-button" aria-label="Phát" onClick={() => void handlePlay()} disabled={busy}><Play size={19} fill="currentColor" /></button>}
+                <button className="play-button" aria-label="Phát" onClick={() => void handlePlay()} disabled={busy}><Play size={19} fill="currentColor" /></button>)}
               <button className="icon-button" aria-label="Bài tiếp" onClick={() => void selectSong(neighbour(1))} disabled={busy}><ChevronRight /></button>
               <button className="icon-button subtle" aria-label="Dừng" onClick={() => void handleStop()} disabled={busy}><Square size={14} /></button>
-              <button className="icon-button subtle" aria-label="Về đầu" onClick={() => void commitSeek(0)} disabled={busy}><RotateCcw size={14} /></button>
+              {selected.kind === "music" && <button className="icon-button subtle" aria-label="Về đầu" onClick={() => void commitSeek(0)} disabled={busy}><RotateCcw size={14} /></button>}
           </div>
             {message && <p className="admin-message">{message}</p>}
           <div className="console-status"><span>● {connection === "demo" ? "DEMO" : connection === "live" ? "LIVE" : "CONNECTING"}</span><span>{audienceCount} NGƯỜI XEM</span><span>{syncLabel.toLocaleUpperCase("vi")}</span></div>

@@ -39,6 +39,10 @@ function parseInfo(content) {
     if (["ten bai hat", "ten bai", "title", "song"].includes(key)) values.title = value;
     if (["nguoi sang tac", "sang tac", "composer", "artist", "tac gia"].includes(key)) values.composer = value;
     if (["thu tu", "order", "stt"].includes(key)) values.order = Number.parseFloat(value);
+    if (["phan loai", "loai", "type", "kind"].includes(key)) {
+      const kind = normalizeKey(value);
+      values.kind = ["dan", "nhac cu", "instrument", "instrumental"].includes(kind) ? "instrument" : "music";
+    }
   }
 
   return values;
@@ -68,7 +72,9 @@ for (const folder of folders) {
     console.warn(`[songs] ${folder.name}: thiếu info.txt, đang dùng tên folder.`);
   }
 
-  for (const requiredFile of ["audio.mp3", "lyrics.txt"]) {
+  const kind = info.kind ?? "music";
+  const requiredFiles = kind === "instrument" ? ["lyrics.txt"] : ["audio.mp3", "lyrics.txt"];
+  for (const requiredFile of requiredFiles) {
     if (!(await exists(path.join(directory, requiredFile)))) {
       console.warn(`[songs] ${folder.name}: thiếu ${requiredFile}.`);
     }
@@ -78,8 +84,9 @@ for (const folder of folders) {
     id: folder.name,
     title: info.title ?? titleFromFolder(folder.name),
     composer: info.composer ?? "Đang cập nhật",
+    kind,
     order: Number.isFinite(info.order) ? info.order : null,
-    audioSrc: `/songs/${encodeURIComponent(folder.name)}/audio.mp3`,
+    audioSrc: kind === "instrument" ? null : `/songs/${encodeURIComponent(folder.name)}/audio.mp3`,
     lyricsSrc: `/songs/${encodeURIComponent(folder.name)}/lyrics.txt`
   });
 }
@@ -93,6 +100,7 @@ const publicSongs = songs.map((song) => ({
   id: song.id,
   title: song.title,
   composer: song.composer,
+  kind: song.kind,
   audioSrc: song.audioSrc,
   lyricsSrc: song.lyricsSrc
 }));

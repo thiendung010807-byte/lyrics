@@ -14,11 +14,14 @@ export type LiveState = {
 
 export type LyricLine = { time: number; text: string };
 
+export type SongKind = "music" | "instrument";
+
 export type Song = {
   id: string;
   title: string;
   composer: string;
-  audioSrc: string;
+  kind: SongKind;
+  audioSrc: string | null;
   lyricsSrc: string;
 };
 

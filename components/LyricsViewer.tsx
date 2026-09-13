@@ -29,16 +29,19 @@ export function LyricsViewer() {
   }, [lyrics, positionMs, song]);
 
   useEffect(() => {
+    if (song?.kind === "instrument") return;
     const current = currentLineRef.current;
     if (!current) return;
     const frame = window.requestAnimationFrame(() => {
       current.scrollIntoView({ behavior: activeIndex <= 0 ? "auto" : "smooth", block: "center" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [activeIndex, song?.id]);
+  }, [activeIndex, song?.id, song?.kind]);
+
+  const isInstrument = song?.kind === "instrument";
 
   return (
-    <main className="lyrics-page">
+    <main className={`lyrics-page ${isInstrument ? "instrument-mode" : "music-mode"}`}>
       <div className="lyrics-layout">
         <header className="lyrics-note">♪</header>
         <section className="lyrics-stage" aria-live="polite">
@@ -51,13 +54,13 @@ export function LyricsViewer() {
           ) : (
             <>
               <h1 className="simple-song-title">{song.title}</h1>
-              <div className="spotify-lyrics">
+              <div className={isInstrument ? "full-lyrics" : "spotify-lyrics"}>
                 {lyrics.map((line, index) => {
                   const distance = Math.abs(index - activeIndex);
-                  const isCurrent = index === activeIndex;
+                  const isCurrent = !isInstrument && index === activeIndex;
                   return (
-                    <p ref={isCurrent ? currentLineRef : undefined} aria-current={isCurrent ? "true" : undefined} key={`${line.time}-${index}`} className={`spotify-line ${isCurrent ? "current" : ""} distance-${Math.min(distance, 3)}`}>
-                      <span className="line-arrow">{isCurrent ? "→" : ""}</span>
+                    <p ref={isCurrent ? currentLineRef : undefined} aria-current={isCurrent ? "true" : undefined} key={`${line.time}-${index}`} className={isInstrument ? "full-line" : `spotify-line ${isCurrent ? "current" : ""} distance-${Math.min(distance, 3)}`}>
+                      {!isInstrument && <span className="line-arrow">{isCurrent ? "→" : ""}</span>}
                       <span>{line.text}</span>
                     </p>
                   );
@@ -68,7 +71,7 @@ export function LyricsViewer() {
         </section>
         <footer className="lyrics-footer">
           <span>HÒA ÂM HỎA Ý</span>
-          <small>{formatTime(positionMs)} · {connection === "live" ? "LIVE" : connection === "demo" ? "DEMO" : "..."}</small>
+          <small>{isInstrument ? "TOÀN BỘ LỜI" : formatTime(positionMs)} · {connection === "live" ? "LIVE" : connection === "demo" ? "DEMO" : "..."}</small>
         </footer>
       </div>
     </main>

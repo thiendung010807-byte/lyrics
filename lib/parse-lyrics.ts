@@ -35,3 +35,15 @@ export function parseLyricsTxt(source: string): LyricLine[] {
 
   return result.sort((a, b) => a.time - b.time);
 }
+
+export function parseFullLyricsTxt(source: string): LyricLine[] {
+  const timedLyrics = parseLyricsTxt(source);
+  if (timedLyrics.length) return timedLyrics;
+
+  return source
+    .replace(/^\uFEFF/, "")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((text, index) => ({ time: index, text: text.trim() }))
+    .filter((line) => line.text && !line.text.startsWith("#"));
+}
